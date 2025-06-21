@@ -4,6 +4,8 @@ RESTful API to manage books, authors, series, categories, and users.
 
 ✅ Built with MongoDB, Express, and JWT for authentication.
 
+---
+
 📚 /books
 
 Create a Book
@@ -13,8 +15,8 @@ POST /api/v1/books
 Body:
 
 {
-"title": "المرأة والجنس",
-"description": "نقد اجتماعي جريء",
+"title": "بين القصرين",
+"description": "رواية من ثلاثية نجيب محفوظ عن الحياة الاجتماعية في مصر",
 "author": "<author _id>",
 "series": "<series _id>",
 "categories": ["<category _id>"]
@@ -47,8 +49,8 @@ PATCH /api/v1/books/:id
 Fields:
 
 {
-"title": "new title",
-"description": "new description",
+"title": "زقاق المدق",
+"description": "رواية تحكي عن حياة سكان الحي الشعبي",
 "author": "<new author _id>",
 "series": "<new series _id>",
 "categories": ["<new category _id>"]
@@ -62,6 +64,8 @@ DELETE /api/v1/books/:id
 
 Returns 204 No Content or 404
 
+---
+
 👨‍🏫 /authors
 
 Create Author
@@ -70,7 +74,7 @@ POST /api/v1/authors
 
 {
 "name": "نجيب محفوظ",
-"bio": "كاتب مصري"
+"bio": "كاتب مصري حائز على جائزة نوبل في الأدب"
 }
 
 Returns 201 Created
@@ -98,6 +102,8 @@ PATCH /api/v1/authors/:id
 
 Returns 200 OK or 404
 
+---
+
 🏛️ /series
 
 Create Series
@@ -105,8 +111,8 @@ Create Series
 POST /api/v1/series
 
 {
-"name": "رجل المستحيل",
-"description": "وصف...",
+"name": "ثلاثية القاهرة",
+"description": "مجموعة روايات تحكي تاريخ القاهرة الاجتماعية",
 "author": "<author _id>"
 }
 
@@ -142,6 +148,8 @@ DELETE /api/v1/series/:id
 
 Returns 204 or 404
 
+---
+
 📄 /categories
 
 Create Category
@@ -149,7 +157,7 @@ Create Category
 POST /api/v1/categories
 
 {
-"name": "تاريخ"
+"name": "روايات"
 }
 
 Returns 201 Created
@@ -166,11 +174,9 @@ GET /api/v1/categories/:id
 
 Returns:
 
-category name
-
-books
-
-bookCount
+- category name
+- books
+- bookCount
 
 Update Category
 
@@ -183,6 +189,8 @@ PATCH /api/v1/categories/:id
 Delete Category
 
 DELETE /api/v1/categories/:id
+
+---
 
 👤 /users Authentication
 
@@ -211,10 +219,10 @@ POST /api/v1/users/login
 
 Returns 200 OK, JWT token and user.
 
+---
+
 Notes
 
-All :id values in routes refer to the custom generated id, not Mongo’s \_id
-
-Use \_id only for linking documents internally
-
-Protected routes (update/delete) will later require authentication via JWT
+- All :id values in routes refer to the custom generated id, **not** Mongo’s \_id
+- Use \_id only for linking documents internally
+- Protected routes (update/delete) will later require authentication via JWT
