@@ -1,6 +1,7 @@
 {
   "env": {
     "node": true,
+    "mocha": true,
     "es2020": true
   },
   "extends": ["airbnb", "prettier", "plugin:node/recommended"],
@@ -33,7 +34,16 @@
         "js": "always"
       }
     ],
-    "prefer-destructuring": ["error", { "object": true, "array": false }],
+    "prefer-destructuring": ["off", { "object": false, "array": false }],
+    "no-plusplus": "off",
     "no-unused-vars": ["error", { "argsIgnorePattern": "req|res|next|val" }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.test.js", "tests/**/*.test.js"],
+      "rules": {
+        "node/no-unpublished-import": "off"
+      }
+    }
+  ]
 }

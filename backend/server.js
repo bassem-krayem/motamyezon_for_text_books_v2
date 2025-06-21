@@ -10,7 +10,7 @@ process.on('uncaughtException', (err) => {
 
 dotenv.config();
 
-const PORT = process.env.PORT;
+const { PORT } = process.env;
 
 mongoose.connect(process.env.DB, { dbName: 'motamyezon' }).then(() => {
   console.log(

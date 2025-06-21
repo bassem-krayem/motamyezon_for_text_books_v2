@@ -1,0 +1,33 @@
+<!-- author.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Author Detail</title>
+</head>
+
+<body>
+    <h1 id="name"></h1>
+    <p id="bio"></p>
+
+    <script>
+        async function loadAuthor() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (!id) return;
+
+            const response = await fetch(`http://localhost:3000/api/v1/authors/${id}`);
+            const data = await response.json();
+
+            document.getElementById('name').textContent = data.data.name;
+            document.getElementById('bio').textContent = data.data.bio;
+
+            // In the future, you can add fetch for /api/v1/books?author=id
+        }
+
+        loadAuthor();
+    </script>
+</body>
+
+</html>

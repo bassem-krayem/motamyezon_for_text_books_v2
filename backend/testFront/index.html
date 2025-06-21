@@ -1,0 +1,39 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Authors</title>
+</head>
+
+<body>
+    <h1>Authors</h1>
+    <ul id="authorList"></ul>
+
+    <script>
+        async function loadAuthors() {
+            const response = await fetch('http://localhost:3000/api/v1/authors');
+            const data = await response.json();
+
+            const list = document.getElementById('authorList');
+            data.data.forEach((author) => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = `author.html?id=${author.id}`;
+                a.textContent = author.name;
+
+                const bio = document.createElement('p');
+                bio.textContent = author.bio;
+
+                li.appendChild(a);
+                li.appendChild(bio);
+                list.appendChild(li);
+            });
+        }
+
+        loadAuthors();
+    </script>
+</body>
+
+</html>
