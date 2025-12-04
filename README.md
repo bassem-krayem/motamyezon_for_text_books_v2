@@ -2,11 +2,21 @@
 
 Arabic digital library backend that lets readers browse, search, and download curated ebooks while trusted contributors grow the catalog. The API is built with Node.js, Express, and MongoDB, ships with security best practices, and is covered by integration tests.
 
-- RESTful resources for authors, series, categories, books, and users
-- JWT authentication with secure cookies and password hashing
-- Production-ready middleware stack (Helmet, rate limiting, sanitization, logging)
-- Data relationships modeled with Mongoose and populated responses
-- Mocha/Chai test suite with Supertest for endpoint coverage
+### **Motamayezon for Text Books – API (v2) — _In Progress_**
+
+**Note:** This project is still under active development and currently functions as an MVP API only.
+Upcoming planned features include:
+
+- Route protection (authentication & authorization)
+- Role-based access control (Uploader, Admin, User)
+- Secure file uploads for the real book files (EPUB, AZW3, KFX)
+- Integration with cloud storage providers such as AWS S3
+
+* RESTful resources for authors, series, categories, books, and users
+* JWT authentication with secure cookies and password hashing
+* Production-ready middleware stack (Helmet, rate limiting, sanitization, logging)
+* Data relationships modeled with Mongoose and populated responses
+* Mocha/Chai test suite with Supertest for endpoint coverage
 
 ### Table of Contents
 
