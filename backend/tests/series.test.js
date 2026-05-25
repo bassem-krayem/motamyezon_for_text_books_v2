@@ -46,21 +46,21 @@ describe('Series API tests suite', () => {
     series = await Series.create({
       name: 'فانتازيا',
       description: 'مغامرات داخل عوالم خيالية عبر برنامج عبقري.',
-      author: author._id,
+      author: author.id,
     });
 
     book1 = await Book.create({
       title: 'أسطورة البيت',
-      author: author._id,
-      series: series._id,
-      categories: [category._id],
+      author: author.id,
+      series: series.id,
+      categories: [category.id],
     });
 
     book2 = await Book.create({
       title: 'أسطورة الدماء',
-      author: author._id,
-      series: series._id,
-      categories: [category._id],
+      author: author.id,
+      series: series.id,
+      categories: [category.id],
     });
   });
 
@@ -69,7 +69,7 @@ describe('Series API tests suite', () => {
       const res = await requester.post('/api/v1/series').send({
         name: 'رجل المستحيل',
         description: 'سلسلة مغامرات بوليسية حول ضابط مخابرات مصري.',
-        author: author._id,
+        author: author.id,
       });
 
       assert.equal(res.status, 201);
@@ -146,14 +146,14 @@ describe('Series API tests suite', () => {
       const res = await requester.patch(`/api/v1/series/${series.id}`).send({
         name: 'فانتازيا جديدة',
         description: 'وصف جديد',
-        author: updatedAuthor._id,
+        author: updatedAuthor.id,
       });
 
       assert.equal(res.status, 200);
       assert.equal(res.body.status, 'success');
       assert.equal(res.body.data.name, 'فانتازيا جديدة');
       assert.equal(res.body.data.description, 'وصف جديد');
-      assert.equal(res.body.data.author, updatedAuthor._id);
+      assert.equal(res.body.data.author, updatedAuthor.id);
     });
 
     it('should return 404 if series not found', async () => {

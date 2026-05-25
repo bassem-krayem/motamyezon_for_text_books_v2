@@ -41,7 +41,7 @@ describe('Book API tests suite', () => {
     series = await Series.create({
       name: 'المرأة والثورة',
       description: 'سلسلة نقد اجتماعي عن المرأة',
-      author: author._id,
+      author: author.id,
     });
 
     category = await Category.create({ name: 'اجتماع' });
@@ -50,17 +50,17 @@ describe('Book API tests suite', () => {
     book1 = await Book.create({
       title: 'المرأة والجنس',
       description: 'نقد اجتماعي جريء',
-      author: author._id,
-      series: series._id,
-      categories: [category._id],
+      author: author.id,
+      series: series.id,
+      categories: [category.id],
     });
 
     book2 = await Book.create({
       title: 'المرأة والصراع النفسي',
       description: 'رحلة في النفس الأنثوية',
-      author: author._id,
-      series: series._id,
-      categories: [category._id],
+      author: author.id,
+      series: series.id,
+      categories: [category.id],
     });
 
     newAuthor = await Author.create({
@@ -71,7 +71,7 @@ describe('Book API tests suite', () => {
     newSeries = await Series.create({
       name: 'سلسلة جديدة',
       description: 'وصف للسلسلة الجديدة',
-      author: newAuthor._id,
+      author: newAuthor.id,
     });
 
     newCategory = await Category.create({ name: 'تاريخ' });
@@ -82,9 +82,9 @@ describe('Book API tests suite', () => {
       const res = await requester.post('/api/v1/books').send({
         title: 'المرأة والصراع النفسي',
         description: 'رحلة في النفس الأنثوية',
-        author: author._id,
-        series: series._id,
-        categories: [category._id],
+        author: author.id,
+        series: series.id,
+        categories: [category.id],
       });
 
       assert.equal(res.status, 201);
@@ -149,9 +149,9 @@ describe('Book API tests suite', () => {
       const updatedData = {
         title: 'عنوان محدث',
         description: 'وصف محدث للكتاب',
-        author: newAuthor._id,
-        series: newSeries._id,
-        categories: [newCategory._id],
+        author: newAuthor.id,
+        series: newSeries.id,
+        categories: [newCategory.id],
       };
 
       const res = await requester
@@ -162,10 +162,10 @@ describe('Book API tests suite', () => {
       assert.equal(res.body.status, 'success');
       assert.equal(res.body.data.title, updatedData.title);
       assert.equal(res.body.data.description, updatedData.description);
-      assert.equal(res.body.data.author, newAuthor._id);
-      assert.equal(res.body.data.series, newSeries._id);
+      assert.equal(res.body.data.author, newAuthor.id);
+      assert.equal(res.body.data.series, newSeries.id);
       const updatedCategory = res.body.data.categories[0];
-      assert.equal(updatedCategory, newCategory._id);
+      assert.equal(updatedCategory, newCategory.id);
     });
 
     it('should return 404 if book not found', async () => {

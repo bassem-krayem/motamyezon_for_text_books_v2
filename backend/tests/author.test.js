@@ -42,28 +42,28 @@ describe('Author API tests suite', () => {
     series1 = await Series.create({
       name: 'سلسلة القصص الأدبية',
       description: 'مجموعة من القصص الهادفة',
-      author: author._id,
+      author: author.id,
     });
 
     series2 = await Series.create({
       name: 'سلسلة النقد الأدبي',
       description: 'تحليلات نقدية لأهم الأعمال',
-      author: author._id,
+      author: author.id,
     });
 
     // Create books for author
     book1 = await Book.create({
       title: 'أرخص ليالي',
       description: 'مجموعة قصصية واقعية',
-      author: author._id,
-      categories: [category._id],
+      author: author.id,
+      categories: [category.id],
     });
 
     book2 = await Book.create({
       title: 'النداهة',
       description: 'قصة خيالية شعبية',
-      author: author._id,
-      categories: [category._id],
+      author: author.id,
+      categories: [category.id],
     });
   });
 
@@ -163,24 +163,16 @@ describe('Author API tests suite', () => {
     });
   });
 
-  describe('PATCH /api/v1/authors/:id', () => {
-    it('should update author info with valid data', async () => {
-      const res = await requester.patch(`/api/v1/authors/${author.id}`).send({
-        name: 'مصطفى المنفلوطي',
-        bio: 'كاتب مشهور',
-      });
+  describe('DELETE /api/v1/authors/:id', () => {
+    it('should delete author and associated books and series', async () => {
+      const res = await requester.delete(`/api/v1/authors/${author.id}`);
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-      assert.equal(res.body.data.name, 'مصطفى المنفلوطي');
-      assert.equal(res.body.data.bio, 'كاتب مشهور');
+      assert.equal(res.status, 204);
     });
 
     it('should return 404 if author not found', async () => {
       const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester.patch(`/api/v1/authors/${fakeId}`).send({
-        name: 'مجهول',
-      });
+      const res = await requester.delete(`/api/v1/authors/${fakeId}`);
 
       assert.equal(res.status, 404);
       assert.equal(res.body.status, 'fail');

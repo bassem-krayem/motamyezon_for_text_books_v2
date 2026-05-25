@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import addCustomIdPlugin from '../utils/addCustomIdPlugin.js';
+import schemaOptions from '../utils/schemaOptions.js';
 
 const bookSchema = new mongoose.Schema(
   {
@@ -13,19 +14,19 @@ const bookSchema = new mongoose.Schema(
       trim: true,
     },
     author: {
-      type: mongoose.Schema.ObjectId,
+      type: String,
       ref: 'Author',
       required: [true, 'Author is required'],
     },
     categories: [
       {
-        type: mongoose.Schema.ObjectId,
+        type: String,
         ref: 'Category',
         required: [true, 'Category is required'],
       },
     ],
     series: {
-      type: mongoose.Schema.ObjectId,
+      type: String,
       ref: 'Series',
     },
     fileFormats: {
@@ -43,11 +44,7 @@ const bookSchema = new mongoose.Schema(
       },
     },
   },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  },
+  schemaOptions,
 );
 
 bookSchema.plugin(addCustomIdPlugin);

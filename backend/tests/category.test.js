@@ -39,8 +39,8 @@ describe('Category API tests suite', () => {
     book1 = await Book.create({
       title: 'أسطورة آكل البشر',
       description: 'جزء من سلسلة ما وراء الطبيعة',
-      author: author._id,
-      categories: [category2._id],
+      author: author.id,
+      categories: [category2.id],
     });
   });
 
