@@ -8,6 +8,7 @@ export default function addCustomIdPlugin(schema, options = {}) {
     type: String,
     unique: true,
     required: true,
+    index: true,
   };
   schema.add(schemaField);
 
