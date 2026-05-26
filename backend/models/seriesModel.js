@@ -18,6 +18,8 @@ const seriesSchema = new mongoose.Schema(
 
 seriesSchema.plugin(addCustomIdPlugin);
 
+seriesSchema.index({ author: 1 });
+
 seriesSchema.virtual('books', {
   ref: 'Book',
   foreignField: 'series',

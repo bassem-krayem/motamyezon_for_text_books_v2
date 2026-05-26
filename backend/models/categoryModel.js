@@ -15,6 +15,8 @@ const categorySchema = new mongoose.Schema(
 
 categorySchema.plugin(addCustomIdPlugin);
 
+categorySchema.index({ name: 1 });
+
 // Add a virtual field to get the number of books in this category
 categorySchema.virtual('bookCount', {
   ref: 'Book',

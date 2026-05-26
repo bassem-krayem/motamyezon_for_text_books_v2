@@ -12,6 +12,8 @@ const authorSchema = new mongoose.Schema(
 
 authorSchema.plugin(addCustomIdPlugin);
 
+authorSchema.index({ name: 1 });
+
 authorSchema.virtual('series', {
   ref: 'Series',
   foreignField: 'author', // field in series model

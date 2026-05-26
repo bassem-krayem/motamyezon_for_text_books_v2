@@ -49,6 +49,11 @@ const bookSchema = new mongoose.Schema(
 
 bookSchema.plugin(addCustomIdPlugin);
 
+bookSchema.index({ author: 1 });
+bookSchema.index({ categories: 1 });
+bookSchema.index({ series: 1 });
+bookSchema.index({ title: 1 });
+
 const Book = mongoose.model('Book', bookSchema);
 
 export default Book;
