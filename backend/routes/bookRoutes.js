@@ -1,11 +1,12 @@
 import express from 'express';
 import * as bookController from '../controllers/bookController.js';
+import uploadBookFiles from '../utils/uploadBooksMiddleware.js';
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(bookController.createBook)
+  .post(uploadBookFiles, bookController.createBook)
   .get(bookController.getAllBooks);
 
 router
