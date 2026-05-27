@@ -1,6 +1,7 @@
 // importing the modules errors and routes ...
 // importing express and middlewares
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
@@ -47,6 +48,8 @@ app.use(xss());
 // express.urlencoded() is a middleware that parses the incoming request with urlencoded payloads
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// 6. Cookie parser
+app.use(cookieParser());
 
 // routes
 app.get('/', (req, res, next) => {
