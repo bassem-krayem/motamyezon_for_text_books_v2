@@ -162,4 +162,10 @@ export const getAllBooks = factory.getAll(Book, [
   { path: 'author', select: 'name id', foreignField: 'id' },
 ]);
 
-export const updateBook = factory.updateOne(Book, 'book');
+export const updateBook = factory.updateOne(Book, 'book', [
+  'title',
+  'description',
+  'author',
+  'categories',
+  'series',
+]);

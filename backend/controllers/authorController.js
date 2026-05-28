@@ -1,7 +1,7 @@
 import Author from '../models/authorModel.js';
 import * as factory from './handlerFactory.js';
 
-export const createAuthor = factory.createOne(Author);
+export const createAuthor = factory.createOne(Author, ['name', 'bio']);
 
 export const getAllAuthors = factory.getAll(Author);
 export const getAuthor = factory.getOne(
@@ -12,5 +12,8 @@ export const getAuthor = factory.getOne(
   ],
   'author',
 );
-export const updateAuthor = factory.updateOne(Author, 'author');
+export const updateAuthor = factory.updateOne(Author, 'author', [
+  'name',
+  'bio',
+]);
 export const deleteAuthor = factory.deleteOne(Author, 'author');

@@ -46,9 +46,15 @@ export const signup = catchAsync(async (req, res, next) => {
     !req.body.password ||
     !req.body.passwordConfirm
   ) {
-    return next(new AppError('Please provide all required fields', 400));
-  }
+    // tell what the feilds are needed
 
+    return next(
+      new AppError(
+        'Please provide firstName, lastName, email, password, and passwordConfirm fields',
+        400,
+      ),
+    );
+  }
   if (req.body.password !== req.body.passwordConfirm) {
     return next(new AppError('Passwords do not match', 400));
   }

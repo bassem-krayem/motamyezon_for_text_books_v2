@@ -2,6 +2,48 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import validator from 'validator';
+import addCustomIdPlugin from '../utils/addCustomIdPlugin.js';
+
+// Define schema options with custom toJSON transformation such as removing __v and formatting timestamps
+const schemaOptions = {
+  timestamps: true,
+  toJSON: {
+    virtuals: true,
+    transform: (doc, ret) => {
+      // 1. Remove MongoDB internal versions and hidden IDs
+      delete ret.__v;
+      delete ret.passwordChangedAt;
+
+      // Configuration for clean 24-hour time with seconds included
+      const dateTimeOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit', // 🌟 Includes seconds explicitly
+        hour12: false, // 🌟 Keeps 24-hour format (e.g., 15:30:45)
+      };
+
+      // 2. Format timestamps beautifully if they exist
+      if (ret.createdAt) {
+        ret.createdAt = new Intl.DateTimeFormat(
+          'en-US',
+          dateTimeOptions,
+        ).format(new Date(ret.createdAt));
+      }
+      if (ret.updatedAt) {
+        ret.updatedAt = new Intl.DateTimeFormat(
+          'en-US',
+          dateTimeOptions,
+        ).format(new Date(ret.updatedAt));
+      }
+
+      return ret;
+    },
+  },
+  toObject: { virtuals: true },
+};
 
 const userSchema = new mongoose.Schema(
   {
@@ -56,10 +98,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
   },
-  {
-    timestamps: true,
-  },
+  schemaOptions,
 );
+
+// Add custom ID plugin to generate 'id' field from '_id'
+userSchema.plugin(addCustomIdPlugin);
 
 // Encrypt password before saving to database
 userSchema.pre('save', async function (next) {
@@ -119,6 +162,13 @@ userSchema.methods.createPasswordResetToken = function () {
 
   return resetToken;
 };
+
+// Query middleware to filter out inactive users
+userSchema.pre(/^find/, function (next) {
+  // 'this' points to the current query
+  this.find({ active: { $ne: false } });
+  next();
+});
 
 const User = mongoose.model('User', userSchema);
 
