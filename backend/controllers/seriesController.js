@@ -1,11 +1,7 @@
 import Series from '../models/seriesModel.js';
 import * as factory from './handlerFactory.js';
 
-export const createSeries = factory.createOne(Series, [
-  'name',
-  'description',
-  'author',
-]); // Only allow these fields to be set on creation
+export const createSeries = factory.createOne(Series);
 
 export const getSeries = factory.getOne(
   Series,
@@ -31,9 +27,5 @@ export const getAllSeries = factory.getAll(Series, {
   foreignField: 'id',
 });
 
-export const updateSeries = factory.updateOne(Series, 'series', [
-  'name',
-  'description',
-  'author',
-]);
+export const updateSeries = factory.updateOne(Series, 'series');
 export const deleteSeries = factory.deleteOne(Series, 'series');

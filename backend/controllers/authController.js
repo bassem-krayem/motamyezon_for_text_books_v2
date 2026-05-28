@@ -39,26 +39,6 @@ const createSendToken = (user, statusCode, res) => {
 // Sign up a new user
 export const signup = catchAsync(async (req, res, next) => {
   // verify fields
-  if (
-    !req.body.firstName ||
-    !req.body.lastName ||
-    !req.body.email ||
-    !req.body.password ||
-    !req.body.passwordConfirm
-  ) {
-    // tell what the feilds are needed
-
-    return next(
-      new AppError(
-        'Please provide firstName, lastName, email, password, and passwordConfirm fields',
-        400,
-      ),
-    );
-  }
-  if (req.body.password !== req.body.passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
-  }
-
   const newUser = await User.create({
     firstName: req.body.firstName,
     lastName: req.body.lastName,
@@ -73,11 +53,6 @@ export const signup = catchAsync(async (req, res, next) => {
 // Login user
 export const login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
-  // Check if email and password exist
-  if (!email || !password) {
-    return next(new AppError('Please provide email and password!', 400));
-  }
-
   // Check if user exists and password is correct
   const user = await User.findOne({ email }).select('+password');
   if (!user || !(await user.correctPassword(password, user.password))) {
@@ -163,11 +138,6 @@ export const restrictTo =
   };
 
 export const forgotPassword = catchAsync(async (req, res, next) => {
-  // check if the email field is provided
-  if (!req.body.email) {
-    return next(new AppError('Please provide your email address', 400));
-  }
-
   // 1) Get user based on POSTed email
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
@@ -222,21 +192,6 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 
 export const resetPassword = catchAsync(async (req, res, next) => {
-  // check if the token is provided
-  if (!req.params.token) {
-    return next(new AppError('Please provide the reset token', 400));
-  }
-
-  // check if the password and passwordConfirm fields are provided
-  if (!req.body.password || !req.body.passwordConfirm) {
-    return next(
-      new AppError(
-        'Please provide both password and passwordConfirm fields',
-        400,
-      ),
-    );
-  }
-
   // 1) Get user based on the token
   const hashedToken = crypto
     .createHash('sha256')
@@ -251,11 +206,6 @@ export const resetPassword = catchAsync(async (req, res, next) => {
   // 2) If token has not expired, and there is user, set the new password
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
-  }
-
-  // if the password provided in the request body does not match the passwordConfirm field, return an error
-  if (req.body.password !== req.body.passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
   }
 
   // if the password provided is the same as the current password, return an error
@@ -280,31 +230,12 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 export const updatePassword = catchAsync(async (req, res, next) => {
-  // check if the passwordCurrent, password, and passwordConfirm fields are provided
-  if (
-    !req.body.currentPassword ||
-    !req.body.password ||
-    !req.body.passwordConfirm
-  ) {
-    return next(
-      new AppError(
-        'Please provide currentPassword, password, and passwordConfirm fields',
-        400,
-      ),
-    );
-  }
-
   // 1) Get user from collection
   const user = await User.findById(req.user.id).select('+password');
 
   // 2) Check if POSTed current password is correct
   if (!(await user.correctPassword(req.body.currentPassword, user.password))) {
     return next(new AppError('Your current password is wrong.', 401));
-  }
-
-  // if the new password provided in the request body does not match the passwordConfirm field, return an error
-  if (req.body.password !== req.body.passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
   }
 
   // if the new password provided is the same as the current password, return an error

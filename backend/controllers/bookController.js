@@ -4,51 +4,12 @@ import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 import storage from '../utils/storageService.js';
 
-/**
- * CREATE BOOK with file uploads
- * POST /api/v1/books
- *
- * Flow:
- * 1. Create book document in MongoDB (generates custom 8-digit ID via plugin)
- * 2. Upload files to DigitalOcean Spaces using the book ID
- * 3. Update book with the three generated URLs
- * 4. Return book with file URLs
- * 5. If error: delete book and uploaded files, return error
- */
 export const createBook = catchAsync(async (req, res, next) => {
-  // ===== STEP 1: Validate files from request =====
-  if (!req.files || !req.files.epub || !req.files.azw3 || !req.files.kfx) {
-    return next(
-      new AppError(
-        'All three file formats are required: epub, azw3, and kfx',
-        400,
-      ),
-    );
-  }
-
-  // Handle Form-Data Array parsing safely
-  let categoriesData = req.body.categories;
-  if (typeof categoriesData === 'string') {
-    try {
-      categoriesData = JSON.parse(categoriesData);
-    } catch (e) {
-      categoriesData = [categoriesData];
-    }
-  }
-
   // STEP 2: Create book document (generates custom 8-digit ID)
-  const bookData = {
-    title: req.body.title,
-    description: req.body.description,
-    author: req.body.author,
-    categories: categoriesData,
-    series: req.body.series,
-  };
-
   let book;
   try {
     // Create book in MongoDB → triggers plugin to generate custom 8-digit ID
-    book = await Book.create(bookData);
+    book = await Book.create(req.body);
   } catch (error) {
     return next(new AppError(`Failed to create book: ${error.message}`, 500));
   }
@@ -162,10 +123,4 @@ export const getAllBooks = factory.getAll(Book, [
   { path: 'author', select: 'name id', foreignField: 'id' },
 ]);
 
-export const updateBook = factory.updateOne(Book, 'book', [
-  'title',
-  'description',
-  'author',
-  'categories',
-  'series',
-]);
+export const updateBook = factory.updateOne(Book, 'book');

@@ -2,21 +2,10 @@ import APIFeatures from '../utils/apiFeatures.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
 
-const filterFields = (obj, allowedFields) => {
-  if (!Array.isArray(allowedFields) || allowedFields.length === 0) return obj;
-
-  const filtered = {};
-  Object.keys(obj).forEach((key) => {
-    if (allowedFields.includes(key)) filtered[key] = obj[key];
-  });
-  return filtered;
-};
-
 // CREATE
-export const createOne = (Model, allowedFields = []) =>
+export const createOne = (Model) =>
   catchAsync(async (req, res, next) => {
-    const filteredBody = filterFields(req.body, allowedFields);
-    const doc = await Model.create(filteredBody);
+    const doc = await Model.create(req.body);
 
     res.status(201).json({
       status: 'success',
@@ -76,21 +65,12 @@ export const getAll = (Model, popOptions) =>
   });
 
 // UPDATE
-export const updateOne = (
-  Model,
-  resourceName = 'document',
-  allowedFields = [],
-) =>
+export const updateOne = (Model, resourceName = 'document') =>
   catchAsync(async (req, res, next) => {
-    const filteredBody = filterFields(req.body, allowedFields);
-    const doc = await Model.findOneAndUpdate(
-      { id: req.params.id },
-      filteredBody,
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
+    const doc = await Model.findOneAndUpdate({ id: req.params.id }, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!doc) {
       return next(new AppError(`No ${resourceName} found with that ID`, 404));
