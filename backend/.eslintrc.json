@@ -40,9 +40,11 @@
   },
   "overrides": [
     {
-      "files": ["*.test.js", "tests/**/*.test.js"],
+      "files": ["*.test.js", "tests/**/*.js"],
       "rules": {
-        "node/no-unpublished-import": "off"
+        "node/no-unpublished-import": "off",
+        "no-unused-expressions": "off",
+        "no-console": "off"
       }
     }
   ]

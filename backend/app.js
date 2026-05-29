@@ -46,6 +46,9 @@ const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000, // 1 hour
   message: 'Too many requests from this IP, please try again in an hour!',
+  // Allow the automated test suite to disable rate limiting so that the many
+  // requests made across all suites in a single process don't trip the limiter.
+  skip: () => process.env.DISABLE_RATE_LIMITING === 'true',
 });
 app.use('/api', limiter);
 

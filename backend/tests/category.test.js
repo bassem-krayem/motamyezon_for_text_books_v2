@@ -1,169 +1,323 @@
-import { assert } from 'chai';
-import { setupTestDB, setupServer } from './setupTests.js';
-import Author from '../models/authorModel.js';
+import { expect } from 'chai';
+import {
+  setupTestDB,
+  getRequest,
+  createTestUserAndGetToken,
+  createAdminUserAndGetToken,
+  createUploaderUserAndGetToken,
+  authenticatedRequest,
+  cleanupDatabase,
+} from './setupTests.js';
 import Category from '../models/categoryModel.js';
 import Book from '../models/bookModel.js';
+import Author from '../models/authorModel.js';
 
-describe('Category API tests suite', () => {
+describe('Category API Tests', () => {
   setupTestDB();
-  const serverSetup = setupServer();
-  let requester;
+  let adminToken;
+  let uploaderToken;
+  let userToken;
   let author;
-  // eslint-disable-next-line no-unused-vars
-  let category1;
-  let category2;
-  let book1;
 
-  before(() => {
-    requester = serverSetup.requester;
+  before(async () => {
+    ({ token: adminToken } = await createAdminUserAndGetToken());
+    ({ token: uploaderToken } = await createUploaderUserAndGetToken());
+    ({ token: userToken } = await createTestUserAndGetToken());
   });
 
   beforeEach(async () => {
-    await Promise.all([
-      Author.deleteMany(),
-      Category.deleteMany(),
-      Book.deleteMany(),
-    ]);
-
-    // Create base author
+    await cleanupDatabase(Category, Book, Author);
     author = await Author.create({
       name: 'أحمد خالد توفيق',
       bio: 'رائد أدب الرعب',
     });
-
-    // Create categories
-    category1 = await Category.create({ name: 'روايات' });
-    category2 = await Category.create({ name: 'رعب' }); // will have books
-
-    // Create a book linked to author and category2
-    book1 = await Book.create({
-      title: 'أسطورة آكل البشر',
-      description: 'جزء من سلسلة ما وراء الطبيعة',
-      author: author.id,
-      categories: [category2.id],
-    });
   });
 
+  // ==================== CREATE CATEGORY (Admin Only) ====================
   describe('POST /api/v1/categories', () => {
-    it('should create a category successfully with valid data', async () => {
-      const res = await requester.post('/api/v1/categories').send({
-        name: 'تاريخ',
-      });
+    it('should create a category successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/categories')
+        .send({ name: 'تاريخ' });
 
-      assert.equal(res.status, 201);
-      assert.equal(res.body.status, 'success');
-      assert.property(res.body.data, 'name');
-      assert.equal(res.body.data.name, 'تاريخ');
+      expect(res.status).to.equal(201);
+      expect(res.body.status).to.equal('success');
+      expect(res.body.data.name).to.equal('تاريخ');
+      expect(res.body.data).to.have.property('id');
     });
 
     it('should fail if name is missing', async () => {
-      const res = await requester.post('/api/v1/categories').send({});
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/categories')
+        .send({});
 
-      assert.equal(res.status, 400);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'is required');
+      expect(res.status).to.equal(400);
+      expect(res.body.status).to.equal('fail');
+      expect(res.body.message).to.include('required');
+    });
+
+    it('should reject unknown fields on create', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/categories')
+        .send({ name: 'تاريخ', injected: 'x' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('not allowed');
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest()
+        .post('/api/v1/categories')
+        .send({ name: 'Test' });
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from creating a category', async () => {
+      const res = await authenticatedRequest(userToken)
+        .post('/api/v1/categories')
+        .send({ name: 'Test' });
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should forbid an uploader from creating a category (admin only)', async () => {
+      const res = await authenticatedRequest(uploaderToken)
+        .post('/api/v1/categories')
+        .send({ name: 'Test' });
+
+      expect(res.status).to.equal(403);
     });
   });
 
+  // ==================== GET CATEGORIES ====================
   describe('GET /api/v1/categories', () => {
-    it('should retrieve all categories with correct bookCount', async () => {
-      const res = await requester.get('/api/v1/categories');
+    beforeEach(async () => {
+      await Category.create({ name: 'روايات' });
+      await Category.create({ name: 'رعب' });
+    });
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-      assert.isArray(res.body.data);
-      assert.lengthOf(res.body.data, 2);
+    it('should retrieve all categories with bookCount', async () => {
+      const res = await getRequest().get('/api/v1/categories');
 
-      // Category with no books should have bookCount 0
-      const cat1 = res.body.data.find((c) => c.name === 'روايات');
-      assert.exists(cat1);
-      assert.property(cat1, 'bookCount');
-      assert.equal(cat1.bookCount, 0);
+      expect(res.status).to.equal(200);
+      expect(res.body.status).to.equal('success');
+      expect(res.body.data).to.be.instanceof(Array).with.lengthOf(2);
+      res.body.data.forEach((cat) => {
+        expect(cat).to.have.property('bookCount');
+        expect(cat).to.have.property('id');
+        expect(cat).to.not.have.property('_id');
+      });
+    });
 
-      // Category with 1 book linked
-      const cat2 = res.body.data.find((c) => c.name === 'رعب');
-      assert.exists(cat2);
-      assert.property(cat2, 'bookCount');
-      assert.equal(cat2.bookCount, 1);
+    it('should paginate categories', async () => {
+      const res = await getRequest()
+        .get('/api/v1/categories')
+        .query({ page: 1, limit: 1 });
+
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.have.lengthOf(1);
+    });
+
+    it('should sort categories by name', async () => {
+      const res = await getRequest()
+        .get('/api/v1/categories')
+        .query({ sort: 'name' });
+
+      expect(res.status).to.equal(200);
+      const names = res.body.data.map((c) => c.name);
+      expect(names).to.deep.equal([...names].sort());
     });
   });
 
+  // ==================== GET SINGLE CATEGORY ====================
   describe('GET /api/v1/categories/:id', () => {
-    it('should retrieve full category profile including books and bookCount', async () => {
-      const res = await requester.get(`/api/v1/categories/${category2.id}`);
+    let category;
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-
-      const { data } = res.body;
-
-      // Category info
-      assert.equal(data.name, category2.name);
-
-      // Book count
-      assert.property(data, 'bookCount');
-      assert.equal(data.bookCount, 1);
-
-      // Books info
-      assert.isArray(data.books);
-      assert.lengthOf(data.books, 1);
-
-      const book = data.books[0];
-      assert.equal(book.title, book1.title);
-      assert.property(book, 'author');
-      assert.property(book.author, 'name');
-      assert.property(book.author, 'id');
+    beforeEach(async () => {
+      category = await Category.create({ name: 'رعب' });
+      await Book.create({
+        title: 'أسطورة آكل البشر',
+        description: 'جزء من سلسلة',
+        author: author.id,
+        categories: [category.id],
+      });
     });
 
-    it('should return 404 if category not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester.get(`/api/v1/categories/${fakeId}`);
+    it('should retrieve category with books and bookCount', async () => {
+      const res = await getRequest().get(`/api/v1/categories/${category.id}`);
 
-      assert.equal(res.status, 404);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'No category found with that ID');
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('رعب');
+      expect(res.body.data.bookCount).to.equal(1);
+      expect(res.body.data.books).to.be.instanceof(Array).with.lengthOf(1);
+      expect(res.body.data.books[0].title).to.equal('أسطورة آكل البشر');
+    });
+
+    it('should return 404 for non-existent category', async () => {
+      const res = await getRequest().get('/api/v1/categories/99999999');
+
+      expect(res.status).to.equal(404);
+      expect(res.body.message).to.include('No category found');
     });
   });
 
+  // ==================== UPDATE CATEGORY (Admin/Uploader) ====================
   describe('PATCH /api/v1/categories/:id', () => {
-    it('should update the category successfully with valid data', async () => {
-      const res = await requester
-        .patch(`/api/v1/categories/${category1.id}`)
+    let category;
+
+    beforeEach(async () => {
+      category = await Category.create({ name: 'روايات' });
+    });
+
+    it('should update category successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/categories/${category.id}`)
         .send({ name: 'روايات حديثة' });
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-      assert.property(res.body.data, 'name');
-      assert.equal(res.body.data.name, 'روايات حديثة');
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('روايات حديثة');
     });
 
-    it('should return 404 if category to update is not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester
-        .patch(`/api/v1/categories/${fakeId}`)
-        .send({ name: 'تجريبي' });
+    it('should allow an uploader to update a category', async () => {
+      const res = await authenticatedRequest(uploaderToken)
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({ name: 'Uploader Edit' });
 
-      assert.equal(res.status, 404);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'No category found with that ID');
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('Uploader Edit');
+    });
+
+    it('should require a name on update (name is mandatory)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({});
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('required');
+    });
+
+    it('should return 404 for non-existent category', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch('/api/v1/categories/99999999')
+        .send({ name: 'X' });
+
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest()
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({ name: 'Updated' });
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from updating a category', async () => {
+      const res = await authenticatedRequest(userToken)
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({ name: 'Updated' });
+
+      expect(res.status).to.equal(403);
     });
   });
 
+  // ==================== DELETE CATEGORY (Admin Only) ====================
   describe('DELETE /api/v1/categories/:id', () => {
-    it('should delete the category successfully', async () => {
-      const res = await requester.delete(`/api/v1/categories/${category1.id}`);
+    let category;
 
-      assert.equal(res.status, 204);
-      assert.notExists(res.body.data); // DELETE returns no content
+    beforeEach(async () => {
+      category = await Category.create({ name: 'تاريخ' });
     });
 
-    it('should return 404 if category to delete is not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester.delete(`/api/v1/categories/${fakeId}`);
+    it('should delete category successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken).delete(
+        `/api/v1/categories/${category.id}`,
+      );
 
-      assert.equal(res.status, 404);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'No category found with that ID');
+      expect(res.status).to.equal(204);
+
+      const deleted = await Category.findOne({ id: category.id });
+      expect(deleted).to.be.null;
+    });
+
+    it('should pull the category id out of related books on delete', async () => {
+      // The Category model's findOneAndDelete hook $pulls the category id from
+      // every book's `categories` array.
+      const book = await Book.create({
+        title: 'كتاب مرتبط',
+        author: author.id,
+        categories: [category.id],
+      });
+
+      await authenticatedRequest(adminToken).delete(
+        `/api/v1/categories/${category.id}`,
+      );
+
+      const bookAfter = await Book.findOne({ id: book.id });
+      expect(bookAfter).to.exist;
+      expect(bookAfter.categories).to.not.include(category.id);
+    });
+
+    it('should return 404 for non-existent category', async () => {
+      const res = await authenticatedRequest(adminToken).delete(
+        '/api/v1/categories/99999999',
+      );
+
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest().delete(
+        `/api/v1/categories/${category.id}`,
+      );
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from deleting a category', async () => {
+      const res = await authenticatedRequest(userToken).delete(
+        `/api/v1/categories/${category.id}`,
+      );
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should forbid an uploader from deleting a category (admin only)', async () => {
+      const res = await authenticatedRequest(uploaderToken).delete(
+        `/api/v1/categories/${category.id}`,
+      );
+
+      expect(res.status).to.equal(403);
+    });
+  });
+
+  // ==================== MASS ASSIGNMENT PROTECTION ====================
+  describe('Mass Assignment Protection', () => {
+    let category;
+
+    beforeEach(async () => {
+      category = await Category.create({ name: 'روايات' });
+    });
+
+    it('should reject an injected id field with 400 and keep the id unchanged', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({ name: 'Updated', id: '99999999' });
+
+      expect(res.status).to.equal(400);
+
+      const fromDb = await Category.findOne({ id: category.id });
+      expect(fromDb.id).to.equal(category.id);
+    });
+
+    it('should reject unknown fields with 400', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/categories/${category.id}`)
+        .send({ name: 'New Name', randomField: 'ignored' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('not allowed');
     });
   });
 });

@@ -1,186 +1,365 @@
-import { assert } from 'chai';
-import { setupTestDB, setupServer } from './setupTests.js';
+import { expect } from 'chai';
+import {
+  setupTestDB,
+  getRequest,
+  createTestUserAndGetToken,
+  createAdminUserAndGetToken,
+  createUploaderUserAndGetToken,
+  authenticatedRequest,
+  cleanupDatabase,
+} from './setupTests.js';
 import Series from '../models/seriesModel.js';
 import Author from '../models/authorModel.js';
-import Category from '../models/categoryModel.js';
 import Book from '../models/bookModel.js';
+import Category from '../models/categoryModel.js';
 
-describe('Series API tests suite', () => {
+describe('Series API Tests', () => {
   setupTestDB();
-  const serverSetup = setupServer();
-  let requester;
+  let adminToken;
+  let uploaderToken;
+  let userToken;
   let author;
-  let updatedAuthor;
-  let series;
-  let category;
-  // eslint-disable-next-line no-unused-vars
-  let book1;
-  // eslint-disable-next-line no-unused-vars
-  let book2;
 
   before(async () => {
-    requester = serverSetup.requester;
+    ({ token: adminToken } = await createAdminUserAndGetToken());
+    ({ token: uploaderToken } = await createUploaderUserAndGetToken());
+    ({ token: userToken } = await createTestUserAndGetToken());
   });
 
   beforeEach(async () => {
-    await Promise.all([
-      Series.deleteMany(),
-      Author.deleteMany(),
-      Category.deleteMany(),
-      Book.deleteMany(),
-    ]);
-
-    // Create base data shared by all tests
+    await cleanupDatabase(Series, Author, Book, Category);
     author = await Author.create({
       name: 'أحمد خالد توفيق',
-      bio: 'رائد أدب الرعب في العالم العربي',
-    });
-
-    updatedAuthor = await Author.create({
-      name: 'أحمد مراد',
-      bio: 'كاتب مصري معروف بأعماله الأدبية المميزة',
-    });
-
-    category = await Category.create({ name: 'روايات' });
-
-    series = await Series.create({
-      name: 'فانتازيا',
-      description: 'مغامرات داخل عوالم خيالية عبر برنامج عبقري.',
-      author: author.id,
-    });
-
-    book1 = await Book.create({
-      title: 'أسطورة البيت',
-      author: author.id,
-      series: series.id,
-      categories: [category.id],
-    });
-
-    book2 = await Book.create({
-      title: 'أسطورة الدماء',
-      author: author.id,
-      series: series.id,
-      categories: [category.id],
+      bio: 'رائد أدب الرعب',
     });
   });
 
+  // ==================== CREATE SERIES (Admin Only) ====================
   describe('POST /api/v1/series', () => {
-    it('should create a series successfully with valid data', async () => {
-      const res = await requester.post('/api/v1/series').send({
-        name: 'رجل المستحيل',
-        description: 'سلسلة مغامرات بوليسية حول ضابط مخابرات مصري.',
+    it('should create a series successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/series')
+        .send({
+          name: 'رجل المستحيل',
+          description: 'سلسلة مغامرات بوليسية',
+          author: author.id,
+        });
+
+      expect(res.status).to.equal(201);
+      expect(res.body.status).to.equal('success');
+      expect(res.body.data.name).to.equal('رجل المستحيل');
+      expect(res.body.data.author).to.equal(author.id);
+    });
+
+    it('should fail if name is missing', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/series')
+        .send({ description: 'Some series', author: author.id });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('required');
+    });
+
+    it('should fail if author is missing (author is required)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/series')
+        .send({ name: 'Test Series', description: 'Description' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('required');
+    });
+
+    // NOTE: The API does NOT currently verify that the referenced author
+    // actually exists (no referential-integrity check), so a series can be
+    // created against an unknown author id. This test documents that real
+    // behaviour rather than asserting a guarantee the API doesn't provide.
+    it('currently accepts a non-existent author id (no referential check)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .post('/api/v1/series')
+        .send({ name: 'Orphan Series', author: '99999999' });
+
+      expect(res.status).to.equal(201);
+      expect(res.body.data.author).to.equal('99999999');
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest()
+        .post('/api/v1/series')
+        .send({ name: 'Test', author: author.id });
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from creating a series', async () => {
+      const res = await authenticatedRequest(userToken)
+        .post('/api/v1/series')
+        .send({ name: 'Test', author: author.id });
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should forbid an uploader from creating a series (admin only)', async () => {
+      const res = await authenticatedRequest(uploaderToken)
+        .post('/api/v1/series')
+        .send({ name: 'Test', author: author.id });
+
+      expect(res.status).to.equal(403);
+    });
+  });
+
+  // ==================== GET SERIES ====================
+  describe('GET /api/v1/series', () => {
+    beforeEach(async () => {
+      await Series.create({
+        name: 'فانتازيا',
+        description: 'مغامرات خيالية',
+        author: author.id,
+      });
+      await Series.create({
+        name: 'غموض',
+        description: 'قصص غموض',
+        author: author.id,
+      });
+    });
+
+    it('should retrieve all series', async () => {
+      const res = await getRequest().get('/api/v1/series');
+
+      expect(res.status).to.equal(200);
+      expect(res.body.status).to.equal('success');
+      expect(res.body.data).to.be.instanceof(Array).with.lengthOf(2);
+    });
+
+    it('should paginate series', async () => {
+      const res = await getRequest()
+        .get('/api/v1/series')
+        .query({ page: 1, limit: 1 });
+
+      expect(res.status).to.equal(200);
+      expect(res.body.data).to.have.lengthOf(1);
+    });
+
+    it('should sort series by name', async () => {
+      const res = await getRequest()
+        .get('/api/v1/series')
+        .query({ sort: 'name' });
+
+      expect(res.status).to.equal(200);
+      const names = res.body.data.map((s) => s.name);
+      expect(names).to.deep.equal([...names].sort());
+    });
+  });
+
+  // ==================== GET SINGLE SERIES ====================
+  describe('GET /api/v1/series/:id', () => {
+    let series;
+
+    beforeEach(async () => {
+      series = await Series.create({
+        name: 'فانتازيا',
+        description: 'مغامرات داخل عوالم خيالية',
         author: author.id,
       });
 
-      assert.equal(res.status, 201);
-      assert.equal(res.body.status, 'success');
-      assert.property(res.body.data, 'name');
-      assert.equal(res.body.data.name, 'رجل المستحيل');
-    });
+      const category = await Category.create({ name: 'روايات' });
 
-    it('should fail if required fields are missing', async () => {
-      const res = await requester.post('/api/v1/series').send({});
-
-      assert.equal(res.status, 400);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'is required');
-    });
-  });
-
-  describe('GET /api/v1/series', () => {
-    it('should retrieve all series with basic author info', async () => {
-      const res = await requester.get('/api/v1/series');
-
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-      assert.isArray(res.body.data);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].name, series.name);
-      assert.equal(res.body.data[0].author.name, author.name);
-      assert.exists(res.body.data[0].author.id);
-    });
-  });
-
-  describe('GET /api/v1/series/:id', () => {
-    it('should retrieve complete series profile including books and author info', async () => {
-      const res = await requester.get(`/api/v1/series/${series.id}`);
-
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-
-      const { data } = res.body;
-
-      // Series info
-      assert.equal(data.name, series.name);
-      assert.equal(data.description, series.description);
-
-      // Author info
-      assert.property(data.author, 'name');
-      assert.property(data.author, 'id');
-
-      // Books
-      assert.isArray(data.books);
-      assert.lengthOf(data.books, 2);
-
-      data.books.forEach((book) => {
-        assert.property(book, 'title');
-        assert.property(book, 'id');
-        assert.property(book, 'author');
-        assert.property(book.author, 'name');
-        assert.property(book.author, 'id');
+      await Book.create({
+        title: 'أسطورة البيت',
+        description: 'قصة خيالية',
+        author: author.id,
+        series: series.id,
+        categories: [category.id],
       });
     });
 
-    it('should return 404 if series not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester.get(`/api/v1/series/${fakeId}`);
+    it('should retrieve series with books and populated author', async () => {
+      const res = await getRequest().get(`/api/v1/series/${series.id}`);
 
-      assert.equal(res.status, 404);
-      assert.equal(res.body.status, 'fail');
-      assert.include(res.body.message, 'No series found with that ID');
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('فانتازيا');
+      expect(res.body.data.author).to.have.property('name', 'أحمد خالد توفيق');
+      expect(res.body.data.books).to.be.instanceof(Array).with.lengthOf(1);
+    });
+
+    it('should return 404 for non-existent series', async () => {
+      const res = await getRequest().get('/api/v1/series/99999999');
+
+      expect(res.status).to.equal(404);
+      expect(res.body.message).to.include('No series found');
     });
   });
 
+  // ==================== UPDATE SERIES (Admin/Uploader) ====================
   describe('PATCH /api/v1/series/:id', () => {
-    it('should update name, description, and author successfully', async () => {
-      const res = await requester.patch(`/api/v1/series/${series.id}`).send({
-        name: 'فانتازيا جديدة',
-        description: 'وصف جديد',
-        author: updatedAuthor.id,
-      });
+    let series;
+    let newAuthor;
 
-      assert.equal(res.status, 200);
-      assert.equal(res.body.status, 'success');
-      assert.equal(res.body.data.name, 'فانتازيا جديدة');
-      assert.equal(res.body.data.description, 'وصف جديد');
-      assert.equal(res.body.data.author, updatedAuthor.id);
+    beforeEach(async () => {
+      series = await Series.create({
+        name: 'فانتازيا',
+        description: 'مغامرات',
+        author: author.id,
+      });
+      newAuthor = await Author.create({ name: 'أحمد مراد', bio: 'كاتب مصري' });
     });
 
-    it('should return 404 if series not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
+    it('should update series successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'فانتازيا جديدة', description: 'وصف جديد' });
 
-      const res = await requester.patch(`/api/v1/series/${fakeId}`).send({
-        name: 'تعديل غير موجود',
-      });
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('فانتازيا جديدة');
+    });
 
-      assert.equal(res.status, 404);
-      assert.include(res.body.message, 'No series found with that ID');
+    it('should allow an uploader to update a series', async () => {
+      const res = await authenticatedRequest(uploaderToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'Uploader Edit' });
+
+      expect(res.status).to.equal(200);
+      expect(res.body.data.name).to.equal('Uploader Edit');
+    });
+
+    it('should allow changing the author', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ author: newAuthor.id });
+
+      expect(res.status).to.equal(200);
+      expect(res.body.data.author).to.equal(newAuthor.id);
+    });
+
+    it('should return 404 for non-existent series', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch('/api/v1/series/99999999')
+        .send({ name: 'X' });
+
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest()
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'Updated' });
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from updating a series', async () => {
+      const res = await authenticatedRequest(userToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'Updated' });
+
+      expect(res.status).to.equal(403);
     });
   });
 
+  // ==================== DELETE SERIES (Admin Only) ====================
   describe('DELETE /api/v1/series/:id', () => {
-    it('should delete series successfully', async () => {
-      const res = await requester.delete(`/api/v1/series/${series.id}`);
+    let series;
+    let book;
 
-      assert.equal(res.status, 204); // or 200 if you're returning a message
+    beforeEach(async () => {
+      series = await Series.create({
+        name: 'Test Series',
+        description: 'Test',
+        author: author.id,
+      });
+      const category = await Category.create({ name: 'روايات' });
+      book = await Book.create({
+        title: 'Test Book',
+        description: 'Test',
+        author: author.id,
+        series: series.id,
+        categories: [category.id],
+      });
     });
 
-    it('should return 404 if series not found', async () => {
-      const fakeId = '60c72b2f9b1e8e0f10a5f999';
-      const res = await requester.delete(`/api/v1/series/${fakeId}`);
+    it('should delete series successfully (admin)', async () => {
+      const res = await authenticatedRequest(adminToken).delete(
+        `/api/v1/series/${series.id}`,
+      );
 
-      assert.equal(res.status, 404);
-      assert.include(res.body.message, 'No series found with that ID');
+      expect(res.status).to.equal(204);
+
+      const deleted = await Series.findOne({ id: series.id });
+      expect(deleted).to.be.null;
+    });
+
+    it('should unset the series link on related books when deleted', async () => {
+      // The Series model's findOneAndDelete hook $unsets `series` on every book
+      // that referenced it, so the field becomes absent (undefined).
+      await authenticatedRequest(adminToken).delete(
+        `/api/v1/series/${series.id}`,
+      );
+
+      const updatedBook = await Book.findOne({ id: book.id });
+      expect(updatedBook).to.exist;
+      expect(updatedBook.series).to.not.exist;
+    });
+
+    it('should return 404 for non-existent series', async () => {
+      const res = await authenticatedRequest(adminToken).delete(
+        '/api/v1/series/99999999',
+      );
+
+      expect(res.status).to.equal(404);
+    });
+
+    it('should fail without authentication', async () => {
+      const res = await getRequest().delete(`/api/v1/series/${series.id}`);
+
+      expect(res.status).to.equal(401);
+    });
+
+    it('should forbid a regular user from deleting a series', async () => {
+      const res = await authenticatedRequest(userToken).delete(
+        `/api/v1/series/${series.id}`,
+      );
+
+      expect(res.status).to.equal(403);
+    });
+
+    it('should forbid an uploader from deleting a series (admin only)', async () => {
+      const res = await authenticatedRequest(uploaderToken).delete(
+        `/api/v1/series/${series.id}`,
+      );
+
+      expect(res.status).to.equal(403);
+    });
+  });
+
+  // ==================== MASS ASSIGNMENT PROTECTION ====================
+  describe('Mass Assignment Protection', () => {
+    let series;
+
+    beforeEach(async () => {
+      series = await Series.create({
+        name: 'فانتازيا',
+        description: 'مغامرات',
+        author: author.id,
+      });
+    });
+
+    it('should reject an injected id field with 400 and keep the id unchanged', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'Updated', id: '99999999' });
+
+      expect(res.status).to.equal(400);
+
+      const fromDb = await Series.findOne({ id: series.id });
+      expect(fromDb.id).to.equal(series.id);
+    });
+
+    it('should reject unknown fields with 400', async () => {
+      const res = await authenticatedRequest(adminToken)
+        .patch(`/api/v1/series/${series.id}`)
+        .send({ name: 'New Name', randomField: 'ignored' });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.message).to.include('not allowed');
     });
   });
 });
