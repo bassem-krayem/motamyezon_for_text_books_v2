@@ -1,0 +1,1202 @@
+openapi: 3.0.0
+info:
+  title: Motamyezon Books API
+  description: |
+    A comprehensive REST API for managing a digital books platform with support for user management,
+    book catalog management, authors, series, and categories. Built with Express.js and MongoDB.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: bassem.krayem09@gmail.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.motamyezon.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management endpoints
+  - name: Books
+    description: Book catalog management
+  - name: Authors
+    description: Author management
+  - name: Series
+    description: Book series management
+  - name: Categories
+    description: Book category management
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token passed as Bearer token in Authorization header
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 8-digit unique identifier
+          example: "12345678"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [user, admin, uploader]
+          description: User role for access control
+          example: "user"
+        active:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 8-digit unique identifier
+          example: "10001234"
+        title:
+          type: string
+          example: "The Mystery Novel"
+        description:
+          type: string
+          example: "An engaging mystery that keeps you guessing"
+        author:
+          $ref: '#/components/schemas/Author'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        series:
+          $ref: '#/components/schemas/Series'
+        fileFormats:
+          type: object
+          properties:
+            epub:
+              type: string
+              format: uri
+              description: URL to EPUB format file
+            azw3:
+              type: string
+              format: uri
+              description: URL to AZW3 format file
+            kfx:
+              type: string
+              format: uri
+              description: URL to KFX format file
+          example:
+            epub: "https://lon1.digitaloceanspaces.com/motamayezon/books/10001234.epub"
+            azw3: "https://lon1.digitaloceanspaces.com/motamayezon/books/10001234.azw3"
+            kfx: "https://lon1.digitaloceanspaces.com/motamayezon/books/10001234.kfx"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Author:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "98765432"
+        name:
+          type: string
+          example: "نجيب محفوظ"
+        bio:
+          type: string
+          example: "Egyptian writer and Nobel laureate"
+        books:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+
+    Series:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "55443322"
+        name:
+          type: string
+          example: "Mystery Series"
+        description:
+          type: string
+          example: "A collection of mysteries"
+        author:
+          $ref: '#/components/schemas/Author'
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "11223344"
+        name:
+          type: string
+          example: "Mystery"
+        bookCount:
+          type: integer
+          description: Virtual field - number of books in this category
+          example: 15
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [fail, error]
+          example: "fail"
+        message:
+          type: string
+          example: "Invalid email or password"
+
+paths:
+  /users/signup:
+    post:
+      summary: Register a new user
+      tags: [Authentication]
+      operationId: signupUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, email, password, passwordConfirm]
+              properties:
+                firstName:
+                  type: string
+                  minLength: 1
+                lastName:
+                  type: string
+                  minLength: 1
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                  description: Password must be at least 8 characters
+                passwordConfirm:
+                  type: string
+                  description: Must match password field
+              example:
+                firstName: "Ahmed"
+                lastName: "Hassan"
+                email: "ahmed@example.com"
+                password: "SecurePass123"
+                passwordConfirm: "SecurePass123"
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/login:
+    post:
+      summary: Login user
+      tags: [Authentication]
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                email: "ahmed@example.com"
+                password: "SecurePass123"
+      responses:
+        '200':
+          description: Successfully logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  token:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+        '429':
+          description: Too many login attempts - rate limited (5+ failed attempts in 15 minutes)
+
+  /users/logout:
+    post:
+      summary: Logout user
+      tags: [Authentication]
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+
+  /users/forgotPassword:
+    post:
+      summary: Request password reset
+      tags: [Authentication]
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent (if email exists)
+        '404':
+          description: User with email not found
+
+  /users/resetPassword/{token}:
+    patch:
+      summary: Reset password with token
+      tags: [Authentication]
+      operationId: resetPassword
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+          description: Password reset token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, passwordConfirm]
+              properties:
+                password:
+                  type: string
+                  minLength: 8
+                passwordConfirm:
+                  type: string
+      responses:
+        '200':
+          description: Password successfully reset
+        '400':
+          description: Invalid or expired token
+
+  /users/updateMyPassword:
+    patch:
+      summary: Update own password (authenticated users)
+      tags: [Users]
+      operationId: updatePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [passwordCurrent, password, passwordConfirm]
+              properties:
+                passwordCurrent:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+                passwordConfirm:
+                  type: string
+      responses:
+        '200':
+          description: Password updated successfully
+        '401':
+          description: Current password is incorrect
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+
+  /users/updateMe:
+    patch:
+      summary: Update own profile information
+      tags: [Users]
+      operationId: updateMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+              example:
+                firstName: "Ahmed"
+                lastName: "Hassan Updated"
+      responses:
+        '200':
+          description: Profile updated successfully
+        '400':
+          description: Invalid data or email already in use
+        '401':
+          description: Not authenticated
+
+  /users/deleteMe:
+    delete:
+      summary: Deactivate own account
+      tags: [Users]
+      operationId: deleteMe
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Account deactivated successfully
+        '401':
+          description: Not authenticated
+
+  /users:
+    get:
+      summary: Get all users (admin only)
+      tags: [Users]
+      operationId: getAllUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: sort
+          schema:
+            type: string
+            example: "email"
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '403':
+          description: Admin access required
+
+  /users/{id}:
+    get:
+      summary: Get user by ID (admin only)
+      tags: [Users]
+      operationId: getUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+
+    patch:
+      summary: Update user by ID (admin only)
+      tags: [Users]
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+                  enum: [user, admin, uploader]
+      responses:
+        '200':
+          description: User updated successfully
+        '404':
+          description: User not found
+
+    delete:
+      summary: Delete user by ID (admin only)
+      tags: [Users]
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted successfully
+        '404':
+          description: User not found
+
+  /books:
+    get:
+      summary: Get all books with filtering, sorting, and pagination
+      tags: [Books]
+      operationId: getAllBooks
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: sort
+          schema:
+            type: string
+            description: "Prefix with - for descending (e.g., -createdAt)"
+            example: "title"
+        - in: query
+          name: author
+          schema:
+            type: string
+          description: Filter by author ID
+        - in: query
+          name: series
+          schema:
+            type: string
+          description: Filter by series ID
+        - in: query
+          name: categories
+          schema:
+            type: string
+          description: Filter by category ID
+      responses:
+        '200':
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Book'
+
+    post:
+      summary: Create new book with file uploads (auth + admin/uploader)
+      tags: [Books]
+      operationId: createBook
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, description, author, categories, epub, azw3, kfx]
+              properties:
+                title:
+                  type: string
+                  example: "The Mystery Novel"
+                description:
+                  type: string
+                  example: "An engaging mystery"
+                author:
+                  type: string
+                  description: Author ID (must exist)
+                  example: "98765432"
+                series:
+                  type: string
+                  description: Series ID (optional)
+                categories:
+                  type: string
+                  description: JSON array of category IDs
+                  example: "[\"11223344\", \"22334455\"]"
+                epub:
+                  type: string
+                  format: binary
+                  description: EPUB file (max 50MB)
+                azw3:
+                  type: string
+                  format: binary
+                  description: AZW3 file (max 50MB)
+                kfx:
+                  type: string
+                  format: binary
+                  description: KFX file (max 50MB)
+      responses:
+        '201':
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid data or missing files
+        '401':
+          description: Not authenticated or insufficient permissions
+
+  /books/{id}:
+    get:
+      summary: Get single book with all populated references
+      tags: [Books]
+      operationId: getBook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Book ID
+      responses:
+        '200':
+          description: Book details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  data:
+                    $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+
+    patch:
+      summary: Update book metadata (admin/uploader only)
+      tags: [Books]
+      operationId: updateBook
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                author:
+                  type: string
+                series:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Book updated successfully
+        '404':
+          description: Book not found
+
+    delete:
+      summary: Delete book and remove uploaded files (admin only)
+      tags: [Books]
+      operationId: deleteBook
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Book deleted successfully
+        '404':
+          description: Book not found
+
+  /authors:
+    get:
+      summary: Get all authors with pagination and sorting
+      tags: [Authors]
+      operationId: getAllAuthors
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: sort
+          schema:
+            type: string
+            example: "name"
+      responses:
+        '200':
+          description: List of authors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Author'
+
+    post:
+      summary: Create new author (admin only)
+      tags: [Authors]
+      operationId: createAuthor
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "نجيب محفوظ"
+                bio:
+                  type: string
+                  example: "Egyptian writer"
+      responses:
+        '201':
+          description: Author created
+        '400':
+          description: Invalid data
+        '403':
+          description: Admin access required
+
+  /authors/{id}:
+    get:
+      summary: Get author with all books and series
+      tags: [Authors]
+      operationId: getAuthor
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Author details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found
+
+    patch:
+      summary: Update author (admin/uploader only)
+      tags: [Authors]
+      operationId: updateAuthor
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Author updated
+        '404':
+          description: Author not found
+
+    delete:
+      summary: Delete author (admin only)
+      tags: [Authors]
+      operationId: deleteAuthor
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Author deleted
+        '404':
+          description: Author not found
+
+  /series:
+    get:
+      summary: Get all series
+      tags: [Series]
+      operationId: getAllSeries
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: sort
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of series
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Series'
+
+    post:
+      summary: Create new series (admin only)
+      tags: [Series]
+      operationId: createSeries
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, author]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                author:
+                  type: string
+                  description: Author ID (must exist)
+      responses:
+        '201':
+          description: Series created
+        '400':
+          description: Invalid data
+        '403':
+          description: Admin access required
+
+  /series/{id}:
+    get:
+      summary: Get series with all books and author
+      tags: [Series]
+      operationId: getSeries
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Series details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Series'
+        '404':
+          description: Series not found
+
+    patch:
+      summary: Update series (admin/uploader only)
+      tags: [Series]
+      operationId: updateSeries
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                author:
+                  type: string
+      responses:
+        '200':
+          description: Series updated
+        '404':
+          description: Series not found
+
+    delete:
+      summary: Delete series (admin only)
+      tags: [Series]
+      operationId: deleteSeries
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Series deleted
+        '404':
+          description: Series not found
+
+  /categories:
+    get:
+      summary: Get all categories with book counts
+      tags: [Categories]
+      operationId: getAllCategories
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: sort
+          schema:
+            type: string
+            description: "Can sort by name or bookCount"
+            example: "bookCount"
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+    post:
+      summary: Create new category (admin only)
+      tags: [Categories]
+      operationId: createCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "Mystery"
+      responses:
+        '201':
+          description: Category created
+        '400':
+          description: Invalid data
+        '403':
+          description: Admin access required
+
+  /categories/{id}:
+    get:
+      summary: Get category with all books and count
+      tags: [Categories]
+      operationId: getCategory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+
+    patch:
+      summary: Update category (admin/uploader only)
+      tags: [Categories]
+      operationId: updateCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Category updated
+        '404':
+          description: Category not found
+
+    delete:
+      summary: Delete category (admin only)
+      tags: [Categories]
+      operationId: deleteCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Category deleted
+        '404':
+          description: Category not found
