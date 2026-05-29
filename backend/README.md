@@ -2,6 +2,31 @@
 
 A comprehensive REST API backend for managing a digital books platform built with Express.js, MongoDB, and JWT authentication.
 
+---
+
+## 📑 Table of Contents
+
+- [What is this?](#-what-is-this)
+- [Quick Start](#-quick-start-5-minutes)
+- [Understanding the API](#-understanding-the-api)
+- [Features](#-features)
+- [API Resources](#-api-resources)
+- [Swagger UI Documentation](#-swagger-ui-documentation)
+- [Environment Variables](#-environment-variables---detailed-guide)
+- [Getting External Credentials](#getting-external-credentials)
+- [Project Structure](#-project-structure)
+- [Testing](#-testing)
+- [Verify Your Setup](#-verify-your-setup-works)
+- [Development](#-development)
+- [Dependencies](#-dependencies)
+- [Troubleshooting](#-troubleshooting)
+- [Complete API Documentation](#-complete-api-documentation)
+- [Next Steps](#-next-steps-after-setup)
+- [Contributing](#-contributing)
+- [Author & Links](#-author--links)
+
+---
+
 ## ❓ What is this?
 
 This is a **REST API** (web service) that allows you to:
@@ -99,7 +124,7 @@ PORT=3000
 
 ```bash
 # Start the development server
-npm run dev
+npm run start:dev
 
 # You should see:
 # Server is running on port 3000...
@@ -107,6 +132,13 @@ npm run dev
 ```
 
 **Success!** Your API is now running at `http://localhost:3000`
+
+**📚 View API Documentation with Swagger UI:**
+```
+http://localhost:3000/api-docs
+```
+
+This opens an interactive API documentation where you can test endpoints directly in your browser!
 
 ### Step 5: Test It Works (30 seconds)
 
@@ -147,7 +179,7 @@ curl -X POST http://localhost:3000/api/v1/users/signup \
 
 ## 📚 Understanding the API
 
-### What You Can Do
+### What You Can Do (Quick Overview)
 
 This API provides endpoints (URLs) for:
 
@@ -212,6 +244,48 @@ Client (Website/App)
 4. Get single book → GET /books/10001234
 5. Download files from URLs
 ```
+
+---
+
+## 🎯 Swagger UI Documentation
+
+Your API comes with **interactive API documentation** built-in using Swagger UI!
+
+### Access Swagger UI
+
+**While server is running:**
+```
+http://localhost:3000/api-docs
+```
+
+### What You Can Do in Swagger UI
+
+✅ **Browse all endpoints** - See every API endpoint organized by resource  
+✅ **View request/response examples** - Understand what data to send and expect  
+✅ **Test endpoints live** - Click "Try it out" and make real requests  
+✅ **Authenticate with tokens** - Click "Authorize" to add JWT token  
+✅ **See error responses** - Understand what happens when things go wrong  
+✅ **View data schemas** - See the structure of request/response data  
+
+### Quick Swagger UI Test
+
+1. Start server: `npm run start:dev`
+2. Open: `http://localhost:3000/api-docs`
+3. Click on **"POST /users/signup"**
+4. Click **"Try it out"**
+5. Fill in the request body (it shows you what's needed)
+6. Click **"Execute"**
+7. See the response instantly!
+
+### Use Token for Protected Endpoints
+
+1. Sign up or login to get a token (see Swagger UI /users/signup)
+2. Copy the token from response
+3. Click **"Authorize"** button (top right of Swagger UI)
+4. Paste: `Bearer YOUR_TOKEN_HERE`
+5. Now test protected endpoints like `/users/me`
+
+**This is the easiest way to test your API!** 🚀
 
 ---
 
@@ -426,24 +500,38 @@ See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md#security-best-practices) for
 ### Available Scripts
 
 ```bash
-# Start development server with auto-reload
-npm run dev
+# Start development server with auto-reload (RECOMMENDED)
+npm run start:dev
+
+# Start development server (also works)
+npm run start
 
 # Start production server
-npm start
+npm run start:prod
 
-# Run tests
+# Run all tests
 npm test
 
-# Run tests with coverage
-npm run test:coverage
+# Run specific test file
+npm run test:user        # Run user/auth tests
+npm run test:author      # Run author tests
+npm run test:book        # Run book tests
+npm run test:series      # Run series tests
+npm run test:category    # Run category tests
 
-# Lint code
-npm run lint
+# Lint code (check for errors)
+npm run lintall
 
-# Format code
-npm run format
+# View available scripts
+npm run
 ```
+
+**Recommended for development:**
+```bash
+npm run start:dev
+```
+
+This starts the server with auto-reload (restarts when you change files).
 
 ### Code Style
 
@@ -712,99 +800,119 @@ See [docs/FILE_UPLOADS.md](docs/FILE_UPLOADS.md#troubleshooting) for detailed fi
 
 ## 📖 Complete API Documentation
 
-For complete API documentation with examples and detailed explanations, see **[docs/README.md](docs/README.md)**.
+### 🎯 Three Ways to View Documentation
 
-### Quick Links by Task
+#### 1. **Swagger UI (Recommended - Interactive)** ⭐
+```
+http://localhost:3000/api-docs
+```
+- **Best for:** Testing endpoints live, seeing examples
+- **Access:** While server is running
+- **Features:** Try-it-out button, authentication, instant responses
 
-**For Getting Started:**
+#### 2. **Markdown Documentation (Detailed)**
+See **[docs/README.md](docs/README.md)** for comprehensive guides
+
+**Quick Links by Task:**
 - [docs/README.md](docs/README.md) - Overview and quick navigation
-
-**For Using the API:**
 - [docs/API.md](docs/API.md) - Complete endpoint reference with curl examples
 - [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) - Login, tokens, user roles
 - [docs/FILE_UPLOADS.md](docs/FILE_UPLOADS.md) - How to upload book files
 
-**For Tools & Integration:**
-- [docs/openapi.yaml](docs/openapi.yaml) - Import into Swagger UI or Postman
+#### 3. **Postman (For integration testing)**
+1. Open Postman
+2. Click "Import" → "Paste Raw Text"
+3. Copy contents of [docs/openapi.yaml](docs/openapi.yaml)
+4. Paste and import
+5. All requests auto-generated!
+
+---
 
 ### Common Questions - Quick Answers
 
-**How do I login?**
-→ See [docs/API.md - Login](docs/API.md#2-login)
-
-**How do I upload a book?**
-→ See [docs/FILE_UPLOADS.md](docs/FILE_UPLOADS.md)
-
-**What is a JWT token?**
-→ See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)
-
-**How do I filter/sort/paginate results?**
-→ See [docs/API.md - Pagination, Filtering & Sorting](docs/API.md#pagination-filtering--sorting)
-
-**Can I use Postman or Swagger UI?**
-→ Yes! Import [docs/openapi.yaml](docs/openapi.yaml)
+| Question | Answer |
+|----------|--------|
+| **How do I test the API?** | Use Swagger UI at `http://localhost:3000/api-docs` |
+| **How do I login?** | See [docs/API.md - Login](docs/API.md#2-login) or use Swagger UI |
+| **How do I upload a book?** | See [docs/FILE_UPLOADS.md](docs/FILE_UPLOADS.md) or use Swagger UI |
+| **What is a JWT token?** | See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) |
+| **How do I filter/sort/paginate?** | See [docs/API.md - Pagination](docs/API.md#pagination-filtering--sorting) |
+| **How do I use Postman?** | Import [docs/openapi.yaml](docs/openapi.yaml) into Postman |
+| **What endpoints exist?** | See Swagger UI or [docs/API.md](docs/API.md) |
 
 ---
 
 ## 🎯 Next Steps After Setup
 
-### Step 1: Explore the API (5 min)
-Run these commands in terminal to understand the API:
+### Step 1: Open Swagger UI (2 min) ⭐ START HERE
+**Easiest way to explore and test the API:**
 
-```bash
-# List all books (should be empty initially)
-curl http://localhost:3000/api/v1/books
+1. Make sure server is running: `npm run start:dev`
+2. Open in browser: `http://localhost:3000/api-docs`
+3. You'll see all endpoints organized by resource
+4. Click any endpoint to see details and examples
 
-# List all authors
-curl http://localhost:3000/api/v1/authors
+### Step 2: Create Test Data with Swagger UI (5 min)
+Using Swagger UI, test these endpoints in order:
 
-# List all categories
-curl http://localhost:3000/api/v1/categories
-```
+1. **Sign up a user**
+   - Click "POST /users/signup"
+   - Click "Try it out"
+   - Fill in: firstName, lastName, email, password, passwordConfirm
+   - Click "Execute"
+   - **Copy the token from response**
 
-### Step 2: Create Test Data (5 min)
-Create some initial data to test with:
+2. **Authorize for protected endpoints**
+   - Click "Authorize" button (top right of Swagger)
+   - Paste: `Bearer YOUR_TOKEN_HERE`
+   - Click "Authorize"
 
-```bash
-# 1. Login to get a token
-TOKEN=$(curl -X POST http://localhost:3000/api/v1/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "TestPass123"}' \
-  | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+3. **Create an author**
+   - Click "POST /authors"
+   - Click "Try it out"
+   - Fill in: name and bio
+   - Click "Execute"
+   - **Copy the author ID from response**
 
-echo "Your token: $TOKEN"
+4. **Create a category**
+   - Click "POST /categories"
+   - Click "Try it out"
+   - Fill in: name (e.g., "Romance")
+   - Click "Execute"
 
-# 2. Create an author
-curl -X POST http://localhost:3000/api/v1/authors \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Jane Austen", "bio": "English author"}'
+### Step 3: Test All Major Endpoints (10 min)
+In Swagger UI, try these endpoints:
 
-# 3. Create a category
-curl -X POST http://localhost:3000/api/v1/categories \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Romance"}'
-```
+- **GET /books** - List all books
+- **GET /authors** - List all authors
+- **GET /users/me** - Get your profile
+- **PATCH /users/updateMe** - Update your profile
+- **GET /books?sort=title** - Sort books by title
+- **PATCH /categories/{id}** - Update a category
 
-### Step 3: Read the Documentation (10 min)
-- Start with [docs/README.md](docs/README.md)
-- Read [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) to understand logins
-- Skim [docs/API.md](docs/API.md) to see all available endpoints
+### Step 4: Read Detailed Documentation (10 min)
+For deeper understanding:
+- [docs/README.md](docs/README.md) - Overview and navigation
+- [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) - How authentication works
+- [docs/FILE_UPLOADS.md](docs/FILE_UPLOADS.md) - How to upload book files
 
-### Step 4: Test Endpoints (15 min)
-Use the examples in [docs/API.md](docs/API.md) to test:
-- Creating books, authors, categories
-- Updating data
-- Filtering and sorting results
-- Error handling
+### Step 5: Use Postman for API Integration (Optional - 5 min)
+If you want to use Postman instead of Swagger UI:
 
-### Step 5: (Optional) Use Swagger UI (5 min)
-Import the API spec for interactive testing:
-1. Go to [Swagger Editor](https://editor.swagger.io/)
-2. Click File → Import URL
-3. Enter: `http://localhost:3000/api/v1/docs/openapi.yaml`
-4. Now test endpoints in your browser!
+1. Open Postman
+2. Click "Import"
+3. Choose "Paste Raw Text"
+4. Copy contents of `docs/openapi.yaml`
+5. Paste and import
+6. All requests auto-generated!
+
+---
+
+**Pro Tips:**
+- 💡 Use Swagger UI while developing - it's the fastest way to test
+- 💡 Test endpoints in the order: signup → create authors → create categories → create books
+- 💡 Always copy the token and use "Authorize" for protected endpoints
+- 💡 Watch the response JSON to understand data structure
 
 ## 🤝 Contributing
 
