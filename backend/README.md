@@ -2,31 +2,6 @@
 
 A comprehensive REST API backend for managing a digital books platform built with Express.js, MongoDB, and JWT authentication.
 
----
-
-## 📑 Table of Contents
-
-- [What is this?](#-what-is-this)
-- [Quick Start](#-quick-start-5-minutes)
-- [Understanding the API](#-understanding-the-api)
-- [Features](#-features)
-- [API Resources](#-api-resources)
-- [Swagger UI Documentation](#-swagger-ui-documentation)
-- [Environment Variables](#-environment-variables---detailed-guide)
-- [Getting External Credentials](#getting-external-credentials)
-- [Project Structure](#-project-structure)
-- [Testing](#-testing)
-- [Verify Your Setup](#-verify-your-setup-works)
-- [Development](#-development)
-- [Dependencies](#-dependencies)
-- [Troubleshooting](#-troubleshooting)
-- [Complete API Documentation](#-complete-api-documentation)
-- [Next Steps](#-next-steps-after-setup)
-- [Contributing](#-contributing)
-- [Author & Links](#-author--links)
-
----
-
 ## ❓ What is this?
 
 This is a **REST API** (web service) that allows you to:
