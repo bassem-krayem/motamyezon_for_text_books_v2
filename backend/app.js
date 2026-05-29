@@ -8,6 +8,10 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import { fileURLToPath } from 'url';
+import path from 'path';
 // importing the error staff
 import AppError from './utils/appError.js';
 import globalErrorHandler from './controllers/errorController.js';
@@ -17,6 +21,13 @@ import authorRouter from './routes/authorRoutes.js';
 import seriesRouter from './routes/seriesRoutes.js';
 import categoryRouter from './routes/categoryRoutes.js';
 import bookRouter from './routes/bookRoutes.js';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load OpenAPI specification
+const swaggerDocument = YAML.load(path.join(__dirname, 'docs/openapi.yaml'));
 
 const app = express();
 
@@ -62,6 +73,16 @@ app.use('/api/v1/authors', authorRouter);
 app.use('/api/v1/series', seriesRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/books', bookRouter);
+
+// Swagger API Documentation
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customCss: '.swagger-ui { background: #fff; }',
+    customSiteTitle: 'Motamyezon Books API Documentation',
+  }),
+);
 
 // 404 route not found  handler
 app.all('*', (req, res, next) => {
