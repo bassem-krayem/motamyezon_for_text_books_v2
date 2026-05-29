@@ -92,8 +92,6 @@ CLOUD_STORAGE_SECRET_KEY=your-secret-key-id-here
 CLOUD_STORAGE_BUCKET_NAME=motamayezon
 ```
 
-**Don't have these credentials yet?** See "Getting External Credentials" section below →
-
 ### Step 4: Start the Server (30 seconds)
 
 ```bash
